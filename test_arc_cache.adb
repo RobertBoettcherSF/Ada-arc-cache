@@ -24,6 +24,7 @@ procedure Test_ARC_Cache is
    
    -- Hash function for bounded strings
    function Hash (Key : Bounded_String) return Ada.Containers.Hash_Type is
+      use type Ada.Containers.Hash_Type;
       Result : Ada.Containers.Hash_Type := 0;
    begin
       for I in Key'Range loop
@@ -59,9 +60,12 @@ procedure Test_ARC_Cache is
 
    -- Helper to convert string to bounded string
    function To_Bounded (S : String) return Bounded_String is
-      Result : Bounded_String;
+      Result : Bounded_String := (others => ' ');
+      S_Len : constant Integer := Integer'Min (S'Length, 100);
    begin
-      Result (1..S'Length) := S;
+      for I in 1..S_Len loop
+         Result (I) := S (S'First + I - 1);
+      end loop;
       return Result;
    end To_Bounded;
 
@@ -187,7 +191,7 @@ procedure Test_ARC_Cache is
          Cache : String_Cache.Cache (Capacity => 10);
       begin
          String_Cache.Put (Cache, To_Bounded ("key1"), 42);
-         String_Cache.Get (Cache, To_Bounded ("key1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key1"), Value);
          Assert_True (Result, "1.1.1", "Get returns True for existing key");
          Assert_Equal (Value, 42, "1.1.2", "Retrieved value matches stored value");
       end;
@@ -196,7 +200,7 @@ procedure Test_ARC_Cache is
       declare
          Cache : String_Cache.Cache (Capacity => 10);
       begin
-         String_Cache.Get (Cache, To_Bounded ("nonexistent"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("nonexistent"), Value);
          Assert_False (Result, "1.2.1", "Get returns False for non-existent key");
       end;
 
@@ -206,7 +210,7 @@ procedure Test_ARC_Cache is
       begin
          String_Cache.Put (Cache, To_Bounded ("key1"), 42);
          String_Cache.Put (Cache, To_Bounded ("key1"), 100);
-         String_Cache.Get (Cache, To_Bounded ("key1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key1"), Value);
          Assert_True (Result, "1.3.1", "Get returns True after overwrite");
          Assert_Equal (Value, 100, "1.3.2", "Overwritten value is retrieved");
       end;
@@ -219,15 +223,15 @@ procedure Test_ARC_Cache is
          String_Cache.Put (Cache, To_Bounded ("key2"), 2);
          String_Cache.Put (Cache, To_Bounded ("key3"), 3);
          
-         String_Cache.Get (Cache, To_Bounded ("key1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key1"), Value);
          Assert_True (Result, "1.4.1", "First key retrievable");
          Assert_Equal (Value, 1, "1.4.2", "First key value correct");
          
-         String_Cache.Get (Cache, To_Bounded ("key2"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key2"), Value);
          Assert_True (Result, "1.4.3", "Second key retrievable");
          Assert_Equal (Value, 2, "1.4.4", "Second key value correct");
          
-         String_Cache.Get (Cache, To_Bounded ("key3"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key3"), Value);
          Assert_True (Result, "1.4.5", "Third key retrievable");
          Assert_Equal (Value, 3, "1.4.6", "Third key value correct");
       end;
@@ -243,16 +247,16 @@ procedure Test_ARC_Cache is
          String_Cache.Put (Cache, To_Bounded ("key3"), 3);
          String_Cache.Put (Cache, To_Bounded ("key4"), 4); -- This should evict key1
          
-         String_Cache.Get (Cache, To_Bounded ("key1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key1"), Value);
          Assert_False (Result, "2.1.1", "First key evicted when capacity exceeded");
          
-         String_Cache.Get (Cache, To_Bounded ("key2"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key2"), Value);
          Assert_True (Result, "2.1.2", "Second key still present");
          
-         String_Cache.Get (Cache, To_Bounded ("key3"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key3"), Value);
          Assert_True (Result, "2.1.3", "Third key still present");
          
-         String_Cache.Get (Cache, To_Bounded ("key4"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key4"), Value);
          Assert_True (Result, "2.1.4", "Fourth key added successfully");
       end;
 
@@ -265,21 +269,21 @@ procedure Test_ARC_Cache is
          String_Cache.Put (Cache, To_Bounded ("key3"), 3);
          
          -- Access key1 to make it recently used
-         String_Cache.Get (Cache, To_Bounded ("key1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key1"), Value);
          
          -- Add key4, should evict key2 (least recently used)
          String_Cache.Put (Cache, To_Bounded ("key4"), 4);
          
-         String_Cache.Get (Cache, To_Bounded ("key1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key1"), Value);
          Assert_True (Result, "2.2.1", "Recently accessed key1 still present");
          
-         String_Cache.Get (Cache, To_Bounded ("key2"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key2"), Value);
          Assert_False (Result, "2.2.2", "Least recently used key2 evicted");
          
-         String_Cache.Get (Cache, To_Bounded ("key3"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key3"), Value);
          Assert_True (Result, "2.2.3", "Key3 still present");
          
-         String_Cache.Get (Cache, To_Bounded ("key4"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key4"), Value);
          Assert_True (Result, "2.2.4", "Key4 added successfully");
       end;
 
@@ -293,11 +297,11 @@ procedure Test_ARC_Cache is
          Int_Cache.Put (Cache, 2, 200);
          Int_Cache.Put (Cache, 3, 300);
          
-         Int_Cache.Get (Cache, 1, Value, Result);
+         Result := Int_Cache.Get (Cache, 1, Value);
          Assert_True (Result, "3.1.1", "Integer key 1 retrievable");
          Assert_Equal (Value, 100, "3.1.2", "Value for key 1 correct");
          
-         Int_Cache.Get (Cache, 2, Value, Result);
+         Result := Int_Cache.Get (Cache, 2, Value);
          Assert_True (Result, "3.1.3", "Integer key 2 retrievable");
          Assert_Equal (Value, 200, "3.1.4", "Value for key 2 correct");
       end;
@@ -325,7 +329,7 @@ procedure Test_ARC_Cache is
          Result := String_Cache.Is_Locked (Cache, To_Bounded ("locked_key"));
          Assert_True (Result, "4.1.1", "Put_Locked creates locked entry");
          
-         String_Cache.Get (Cache, To_Bounded ("locked_key"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("locked_key"), Value);
          Assert_True (Result, "4.1.2", "Locked entry can be retrieved with Get");
          Assert_Equal (Value, 42, "4.1.3", "Locked entry value is correct");
       end;
@@ -338,7 +342,7 @@ procedure Test_ARC_Cache is
          Result := String_Cache.Is_Locked (Cache, To_Bounded ("key1"));
          Assert_False (Result, "4.2.1", "Regular Put creates unlocked entry");
          
-         String_Cache.Get_Locked (Cache, To_Bounded ("key1"), Value, Result);
+         Result := String_Cache.Get_Locked (Cache, To_Bounded ("key1"), Value);
          Assert_True (Result, "4.2.2", "Get_Locked succeeds for existing key");
          Result := String_Cache.Is_Locked (Cache, To_Bounded ("key1"));
          Assert_True (Result, "4.2.3", "Get_Locked locks the entry");
@@ -378,7 +382,7 @@ procedure Test_ARC_Cache is
          -- Cache is full, try to add another - should evict unlocked entries first
          String_Cache.Put (Cache, To_Bounded ("unlocked3"), 4);
          
-         String_Cache.Get (Cache, To_Bounded ("locked1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("locked1"), Value);
          Assert_True (Result, "5.1.1", "Locked entry not evicted when cache full");
          Assert_Equal (Value, 1, "5.1.2", "Locked entry value preserved");
          
@@ -419,13 +423,13 @@ procedure Test_ARC_Cache is
          -- Now we should be able to add a new entry
          String_Cache.Put (Cache, To_Bounded ("unlocked1"), 3);
          
-         String_Cache.Get (Cache, To_Bounded ("locked1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("locked1"), Value);
          Assert_False (Result, "5.3.1", "Unlocked entry can be evicted");
          
-         String_Cache.Get (Cache, To_Bounded ("locked2"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("locked2"), Value);
          Assert_True (Result, "5.3.2", "Still locked entry preserved");
          
-         String_Cache.Get (Cache, To_Bounded ("unlocked1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("unlocked1"), Value);
          Assert_True (Result, "5.3.3", "New entry added successfully");
       end;
 
@@ -439,7 +443,7 @@ procedure Test_ARC_Cache is
          Result := String_Cache.Is_Locked (Cache, To_Bounded ("locked"));
          Assert_True (Result, "6.1.1", "Entry is locked");
          
-         String_Cache.Get (Cache, To_Bounded ("locked"), Value, Result); -- Regular Get
+         Result := String_Cache.Get (Cache, To_Bounded ("locked"), Value); -- Regular Get
          Result := String_Cache.Is_Locked (Cache, To_Bounded ("locked"));
          Assert_True (Result, "6.1.2", "Regular Get preserves lock status");
       end;
@@ -483,7 +487,7 @@ procedure Test_ARC_Cache is
          
          -- Access some items from T1 (moving them to T2)
          for I in 1..3 loop
-            String_Cache.Get (Cache, To_Bounded ("t1_key_" & Integer'Image (I)), Value, Result);
+            Result := String_Cache.Get (Cache, To_Bounded ("t1_key_" & Integer'Image (I)), Value);
          end loop;
          
          -- Add more items to trigger adaptation
@@ -493,7 +497,7 @@ procedure Test_ARC_Cache is
          
          -- Verify we can still access recently used items
          for I in 1..3 loop
-            String_Cache.Get (Cache, To_Bounded ("t1_key_" & Integer'Image (I)), Value, Result);
+            Result := String_Cache.Get (Cache, To_Bounded ("t1_key_" & Integer'Image (I)), Value);
             Assert_True (Result, "7.1." & Integer'Image (I), 
                        "Recently accessed item " & Integer'Image (I) & " still in cache");
          end loop;
@@ -510,7 +514,7 @@ procedure Test_ARC_Cache is
          
          -- Access all items to move them to T2
          for I in 1..5 loop
-            String_Cache.Get (Cache, To_Bounded ("key_" & Integer'Image (I)), Value, Result);
+            Result := String_Cache.Get (Cache, To_Bounded ("key_" & Integer'Image (I)), Value);
          end loop;
          
          -- Add new items, which should evict from T1 (but T1 is empty) and then from T2
@@ -519,7 +523,7 @@ procedure Test_ARC_Cache is
          end loop;
          
          -- Some original items should still be in cache (in T2)
-         String_Cache.Get (Cache, To_Bounded ("key_5"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key_5"), Value);
          Assert_True (Result, "7.2.1", "Most recently accessed original item still in cache");
       end;
 
@@ -534,7 +538,7 @@ procedure Test_ARC_Cache is
          String_Cache.Put (Cache, To_Bounded ("key3"), 3);
          
          -- Access key1 (moves to T2)
-         String_Cache.Get (Cache, To_Bounded ("key1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key1"), Value);
          
          -- Fill cache to trigger eviction
          for I in 4..11 loop
@@ -542,7 +546,7 @@ procedure Test_ARC_Cache is
          end loop;
          
          -- key1 should still be in cache (in T2)
-         String_Cache.Get (Cache, To_Bounded ("key1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key1"), Value);
          Assert_True (Result, "8.1.1", "Recently accessed key1 still in cache after filling");
       end;
 
@@ -557,14 +561,14 @@ procedure Test_ARC_Cache is
          
          -- Check that recent items are still in cache
          for I in 6..10 loop
-            String_Cache.Get (Cache, To_Bounded ("seq_" & Integer'Image (I)), Value, Result);
+            Result := String_Cache.Get (Cache, To_Bounded ("seq_" & Integer'Image (I)), Value);
             Assert_True (Result, "8.2." & Integer'Image (I-5), 
                        "Recent sequential item " & Integer'Image (I) & " in cache");
          end loop;
          
          -- Older items should be evicted
          for I in 1..5 loop
-            String_Cache.Get (Cache, To_Bounded ("seq_" & Integer'Image (I)), Value, Result);
+            Result := String_Cache.Get (Cache, To_Bounded ("seq_" & Integer'Image (I)), Value);
             Assert_False (Result, "8.2." & Integer'Image (I+5), 
                         "Old sequential item " & Integer'Image (I) & " evicted");
          end loop;
@@ -584,7 +588,7 @@ procedure Test_ARC_Cache is
          -- Repeatedly access a subset (working set)
          for Cycle in 1..5 loop
             for I in 1..4 loop
-               String_Cache.Get (Cache, To_Bounded ("ws_" & Integer'Image (I)), Value, Result);
+               Result := String_Cache.Get (Cache, To_Bounded ("ws_" & Integer'Image (I)), Value);
             end loop;
          end loop;
          
@@ -595,7 +599,7 @@ procedure Test_ARC_Cache is
          
          -- Working set items should still be in cache
          for I in 1..4 loop
-            String_Cache.Get (Cache, To_Bounded ("ws_" & Integer'Image (I)), Value, Result);
+            Result := String_Cache.Get (Cache, To_Bounded ("ws_" & Integer'Image (I)), Value);
             Assert_True (Result, "9.1." & Integer'Image (I), 
                        "Working set item " & Integer'Image (I) & " preserved");
          end loop;
@@ -620,7 +624,7 @@ procedure Test_ARC_Cache is
       declare
          Cache : String_Cache.Cache (Capacity => 10);
       begin
-         String_Cache.Get (Cache, To_Bounded ("any_key"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("any_key"), Value);
          Assert_False (Result, "10.1.1", "Get on empty cache returns False");
       end;
 
@@ -647,15 +651,15 @@ procedure Test_ARC_Cache is
          Cache : String_Cache.Cache (Capacity => 1);
       begin
          String_Cache.Put (Cache, To_Bounded ("key1"), 1);
-         String_Cache.Get (Cache, To_Bounded ("key1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key1"), Value);
          Assert_True (Result, "11.1.1", "Single item cache: first item retrievable");
          Assert_Equal (Value, 1, "11.1.2", "Single item cache: value correct");
          
          String_Cache.Put (Cache, To_Bounded ("key2"), 2);
-         String_Cache.Get (Cache, To_Bounded ("key1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key1"), Value);
          Assert_False (Result, "11.1.3", "Single item cache: first item evicted");
          
-         String_Cache.Get (Cache, To_Bounded ("key2"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key2"), Value);
          Assert_True (Result, "11.1.4", "Single item cache: second item present");
       end;
 
@@ -676,7 +680,7 @@ procedure Test_ARC_Cache is
          Assert_True (Exception_Raised, "11.2.1", 
                     "Single capacity cache: Cache_Full_Of_Locked_Pages raised");
          
-         String_Cache.Get (Cache, To_Bounded ("locked"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("locked"), Value);
          Assert_True (Result, "11.2.2", "Locked item still in cache");
       end;
 
@@ -690,7 +694,7 @@ procedure Test_ARC_Cache is
          String_Cache.Put (Cache, To_Bounded ("key"), 2);
          String_Cache.Put (Cache, To_Bounded ("key"), 3);
          
-         String_Cache.Get (Cache, To_Bounded ("key"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key"), Value);
          Assert_True (Result, "12.1.1", "Key exists after multiple Puts");
          Assert_Equal (Value, 3, "12.1.2", "Last Put value is retrieved");
       end;
@@ -707,7 +711,7 @@ procedure Test_ARC_Cache is
          Result := String_Cache.Is_Locked (Cache, To_Bounded ("key"));
          Assert_True (Result, "12.2.2", "Key locked after Put_Locked");
          
-         String_Cache.Get (Cache, To_Bounded ("key"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key"), Value);
          Assert_Equal (Value, 2, "12.2.3", "Value updated by Put_Locked");
       end;
 
@@ -716,12 +720,12 @@ procedure Test_ARC_Cache is
          Cache : String_Cache.Cache (Capacity => 10);
       begin
          String_Cache.Put (Cache, To_Bounded ("key"), 1);
-         String_Cache.Get_Locked (Cache, To_Bounded ("key"), Value, Result);
+         Result := String_Cache.Get_Locked (Cache, To_Bounded ("key"), Value);
          Assert_True (Result, "12.3.1", "Get_Locked succeeds");
          Result := String_Cache.Is_Locked (Cache, To_Bounded ("key"));
          Assert_True (Result, "12.3.2", "Key locked after Get_Locked");
          
-         String_Cache.Get (Cache, To_Bounded ("key"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("key"), Value);
          Assert_True (Result, "12.3.3", "Regular Get still succeeds on locked key");
          Result := String_Cache.Is_Locked (Cache, To_Bounded ("key"));
          Assert_True (Result, "12.3.4", "Key remains locked after regular Get");
@@ -739,13 +743,13 @@ procedure Test_ARC_Cache is
          end loop;
          
          -- Check a few items
-         String_Cache.Get (Cache, To_Bounded ("large_1"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("large_1"), Value);
          Assert_True (Result, "13.1.1", "First item in large cache retrievable");
          
-         String_Cache.Get (Cache, To_Bounded ("large_500"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("large_500"), Value);
          Assert_True (Result, "13.1.2", "Last item in large cache retrievable");
          
-         String_Cache.Get (Cache, To_Bounded ("large_250"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("large_250"), Value);
          Assert_True (Result, "13.1.3", "Middle item in large cache retrievable");
       end;
 
@@ -793,7 +797,7 @@ procedure Test_ARC_Cache is
          -- Try to retrieve the last 100 items (should be in cache)
          Success_Count := 0;
          for I in 101..200 loop
-            String_Cache.Get (Cache, To_Bounded ("stress_" & Integer'Image (I)), Value, Result);
+            Result := String_Cache.Get (Cache, To_Bounded ("stress_" & Integer'Image (I)), Value);
             if Result then
                Success_Count := Success_Count + 1;
             end if;
@@ -814,7 +818,7 @@ procedure Test_ARC_Cache is
             elsif I mod 3 = 1 then
                String_Cache.Put_Locked (Cache, To_Bounded ("locked_" & Integer'Image (I)), I);
             else
-               String_Cache.Get (Cache, To_Bounded ("mixed_" & Integer'Image (I-1)), Value, Result);
+               Result := String_Cache.Get (Cache, To_Bounded ("mixed_" & Integer'Image (I-1)), Value);
             end if;
          end loop;
          
@@ -822,7 +826,7 @@ procedure Test_ARC_Cache is
          Success_Count := 0;
          for I in 1..100 loop
             if I mod 3 = 1 then
-               String_Cache.Get (Cache, To_Bounded ("locked_" & Integer'Image (I)), Value, Result);
+               Result := String_Cache.Get (Cache, To_Bounded ("locked_" & Integer'Image (I)), Value);
                if Result then
                   Success_Count := Success_Count + 1;
                end if;
@@ -847,7 +851,7 @@ procedure Test_ARC_Cache is
          -- Access all items multiple times
          for Cycle in 1..10 loop
             for I in 1..20 loop
-               String_Cache.Get (Cache, To_Bounded ("cons_" & Integer'Image (I)), Value, Result);
+               Result := String_Cache.Get (Cache, To_Bounded ("cons_" & Integer'Image (I)), Value);
                Assert_Equal (Value, I, "15.1." & Integer'Image (Cycle) & "_" & Integer'Image (I),
                            "Value consistency maintained across cycles");
             end loop;
@@ -882,20 +886,20 @@ procedure Test_ARC_Cache is
          String_Cache.Put (Cache, To_Bounded ("c"), 3);
          
          -- Access 'a' to move it to T2
-         String_Cache.Get (Cache, To_Bounded ("a"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("a"), Value);
          
          -- Add 'd', which should evict from T1 (which has 'b' and 'c')
          String_Cache.Put (Cache, To_Bounded ("d"), 4);
          
          -- Check what was evicted
-         String_Cache.Get (Cache, To_Bounded ("a"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("a"), Value);
          Assert_True (Result, "16.1.1", "Recently accessed 'a' still in cache");
          
-         String_Cache.Get (Cache, To_Bounded ("b"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("b"), Value);
          declare
             B_Present : Boolean := Result;
          begin
-            String_Cache.Get (Cache, To_Bounded ("c"), Value, Result);
+            Result := String_Cache.Get (Cache, To_Bounded ("c"), Value);
             -- One of b or c should be evicted, but we don't know which
             Assert (not (B_Present and Result), "16.1.2",
                   "Either b or c was evicted (proving ARC doesn't just use simple LRU)");
@@ -910,7 +914,7 @@ procedure Test_ARC_Cache is
          String_Cache.Put_Locked (Cache, To_Bounded ("locked"), 1);
          
          -- Access the locked item
-         String_Cache.Get (Cache, To_Bounded ("locked"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("locked"), Value);
          
          -- The item should still be locked but might have moved from T1 to T2
          Result := String_Cache.Is_Locked (Cache, To_Bounded ("locked"));
@@ -935,7 +939,7 @@ procedure Test_ARC_Cache is
          -- Count how many items are actually in cache
          Count := 0;
          for I in 1..20 loop
-            String_Cache.Get (Cache, To_Bounded ("cap_" & Integer'Image (I)), Value, Result);
+            Result := String_Cache.Get (Cache, To_Bounded ("cap_" & Integer'Image (I)), Value);
             if Result then
                Count := Count + 1;
             end if;
@@ -957,13 +961,13 @@ procedure Test_ARC_Cache is
          -- Cache has 2 items, capacity is 3, no eviction should happen
          String_Cache.Put (Cache, To_Bounded ("z"), 3);
          
-         String_Cache.Get (Cache, To_Bounded ("x"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("x"), Value);
          Assert_True (Result, "17.2.1", "No eviction when under capacity");
          
-         String_Cache.Get (Cache, To_Bounded ("y"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("y"), Value);
          Assert_True (Result, "17.2.2", "No eviction when under capacity");
          
-         String_Cache.Get (Cache, To_Bounded ("z"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("z"), Value);
          Assert_True (Result, "17.2.3", "No eviction when under capacity");
       end;
 
@@ -983,7 +987,7 @@ procedure Test_ARC_Cache is
          Assert_False (Result, "18.1.2", "Item remains unlocked after Unlock");
          
          -- Item should still be in cache
-         String_Cache.Get (Cache, To_Bounded ("unlocked"), Value, Result);
+         Result := String_Cache.Get (Cache, To_Bounded ("unlocked"), Value);
          Assert_True (Result, "18.1.3", "Item still in cache after unnecessary Unlock");
       end;
 
@@ -992,7 +996,7 @@ procedure Test_ARC_Cache is
       declare
          Cache : String_Cache.Cache (Capacity => 10);
       begin
-         String_Cache.Get_Locked (Cache, To_Bounded ("nonexistent"), Value, Result);
+         Result := String_Cache.Get_Locked (Cache, To_Bounded ("nonexistent"), Value);
          Assert_False (Result, "18.2.1", "Get_Locked returns False for non-existent key");
       end;
 

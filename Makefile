@@ -4,7 +4,7 @@
 .PHONY: all clean build test run help
 
 # Compiler settings
-GNATMAKE := gnatmake
+GNATMAKE := gprbuild
 GPRBUILD := gprbuild
 
 # Project files

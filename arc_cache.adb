@@ -14,7 +14,7 @@ package body ARC_Cache is
          Success := False;
          while Has_Element (Curr) loop
             declare
-               Item_Key : Key_Type := Element (Curr);
+               Item_Key : constant Key_Type := Element (Curr);
                Ent : Cache_Entry := C.Map.Element (Item_Key);
             begin
                if not Ent.Locked then
@@ -57,7 +57,7 @@ package body ARC_Cache is
       use Key_Lists;
       use Ada.Containers;
       Ent   : Cache_Entry;
-      C_Cap : Count_Type := C.Capacity;
+      C_Cap : constant Count_Type := C.Capacity;
    begin
       if C.Map.Contains (Key) then
          Ent := C.Map.Element (Key);
@@ -80,8 +80,8 @@ package body ARC_Cache is
          elsif Ent.Kind = In_B1 then
             -- Ghost Hit in B1
             declare
-               Len_B1  : Integer := Integer (C.Lists (In_B1).Length);
-               Len_B2  : Integer := Integer (C.Lists (In_B2).Length);
+               Len_B1  : constant Integer := Integer (C.Lists (In_B1).Length);
+               Len_B2  : constant Integer := Integer (C.Lists (In_B2).Length);
                Delta_P : Integer := 1;
             begin
                if Len_B1 < Len_B2 then
@@ -105,8 +105,8 @@ package body ARC_Cache is
          elsif Ent.Kind = In_B2 then
             -- Ghost Hit in B2
             declare
-               Len_B1  : Integer := Integer (C.Lists (In_B1).Length);
-               Len_B2  : Integer := Integer (C.Lists (In_B2).Length);
+               Len_B1  : constant Integer := Integer (C.Lists (In_B1).Length);
+               Len_B2  : constant Integer := Integer (C.Lists (In_B2).Length);
                Delta_P : Integer := 1;
             begin
                if Len_B2 < Len_B1 then
@@ -131,15 +131,15 @@ package body ARC_Cache is
 
       -- Cache Miss
       declare
-         Len_T1 : Count_Type := C.Lists (In_T1).Length;
-         Len_B1 : Count_Type := C.Lists (In_B1).Length;
-         Len_T2 : Count_Type := C.Lists (In_T2).Length;
-         Len_B2 : Count_Type := C.Lists (In_B2).Length;
+         Len_T1 : constant Count_Type := C.Lists (In_T1).Length;
+         Len_B1 : constant Count_Type := C.Lists (In_B1).Length;
+         Len_T2 : constant Count_Type := C.Lists (In_T2).Length;
+         Len_B2 : constant Count_Type := C.Lists (In_B2).Length;
       begin
          if Len_T1 + Len_B1 = C_Cap then
             if Len_T1 < C_Cap then
                declare
-                  Old_Key : Key_Type := Element (Last (C.Lists (In_B1)));
+                  Old_Key : constant Key_Type := Element (Last (C.Lists (In_B1)));
                begin
                   C.Lists (In_B1).Delete_Last;
                   C.Map.Delete (Old_Key);
@@ -170,7 +170,7 @@ package body ARC_Cache is
          elsif Len_T1 + Len_B1 < C_Cap and then Len_T1 + Len_T2 + Len_B1 + Len_B2 >= C_Cap then
             if Len_T1 + Len_T2 + Len_B1 + Len_B2 = 2 * C_Cap then
                declare
-                  Old_Key : Key_Type := Element (Last (C.Lists (In_B2)));
+                  Old_Key : constant Key_Type := Element (Last (C.Lists (In_B2)));
                begin
                   C.Lists (In_B2).Delete_Last;
                   C.Map.Delete (Old_Key);
